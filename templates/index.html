@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<title>Прогноз погоды</title>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; }
+</style>
+</head>
+<body>
+<h1>Погода в вашем городе</h1>
+
+<form method="post" id="cityForm">
+<input type="text" name="city" id="cityInput" placeholder="Введите название города" autocomplete="off" required value="{{ last_city or '' }}"/>
+<button type="submit">Показать прогноз</button>
+</form>
+
+<div id="autoCompleteSuggestions" style="border:1px solid #ccc; max-width:300px;"></div>
+
+{% if weather %}
+<h2>Прогноз для {{ last_city }}</h2>
+<p>Температура: {{ weather.temperature }}°C</p>
+<p>Скорость ветра: {{ weather.windspeed }} м/с</p>
+<p>Время обновления: {{ weather.time }}</p>
+<pre>{{ weather | tojson }}</pre>
+{% endif %}
+
+<h3>История поиска:</h3>
+<ul>
+{% for c in history %}
+<li>{{ c }}</li>
+{% endfor %}
+</ul>
+
+<script>
+$(document).ready(function(){
+  $('#cityInput').on('input', function(){
+      let term = $(this).val();
+      $.getJSON('/autocomplete', {term: term}, function(data){
+          let suggestionsBox = $('#autoCompleteSuggestions');
+          suggestionsBox.empty();
+          data.forEach(function(item){
+              suggestionsBox.append('<div class="suggestion">'+item+'</div>');
+          });
+          $('.suggestion').click(function(){
+              $('#cityInput').val($(this).text());
+              suggestionsBox.empty();
+          });
+      });
+  });
+});
+</script>
+
+<h3>Статистика запросов:</h3>
+<button onclick="fetchStats()">Показать статистику</button>
+<pre id="stats"></pre>
+
+<script>
+function fetchStats() {
+  fetch('/api/stats')
+  .then(response => response.json())
+  .then(data => {
+      document.getElementById('stats').textContent=JSON.stringify(data,null,2);
+  });
+}
+</script>
+
+</body>
+</html>
